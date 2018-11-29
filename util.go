@@ -190,11 +190,15 @@ func binMapToTransaction(record *aero.Record) (Transaction, error) {
 	tx.Input = input
 
 	// Amountの型アサーション
-	amount, ok := binMap["Amount"].(float64)
+	amountFloat, ok := binMap["Amount"].(float64)
 	if !ok {
-		return Transaction{}, fmt.Errorf("failed Amount assertion")
+		amountInt, ok := binMap["Amount"].(int)
+		if !ok {
+			return Transaction{}, fmt.Errorf("failed Amount assertion")
+		}
+		amountFloat = float64(amountInt)
 	}
-	tx.Amount = amount
+	tx.Amount = amountFloat
 
 	// Timestampの型アサーション
 	timestamp, ok := binMap["Timestamp"].(string)
