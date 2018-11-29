@@ -1,15 +1,18 @@
 # example
 
 ```
-func main() {
-	// クライアントを取得する
-	client, err := NewAeroSpikeClient(AEROSPIKE_HOST, AEROSPIKE_PORT)
-	if err != nil {
-		panic(err)
-	}
+package main
 
+import (
+	"fmt"
+
+	aero "github.com/youtangai/utari-aerospike-client"
+)
+
+func main() {
+	client, err := aero.NewAeroSpikeClient("127.0.0.1", 3000)
 	// ダミーデータ作成
-	block := Block{
+	block := aero.Block{
 		Id:         "testid",
 		Version:    12,
 		Prehash:    "testprehash",
@@ -21,7 +24,7 @@ func main() {
 		Txcount:    12345,
 		TxidList:   []string{"testid1", "testid2"},
 	}
-	tx := Transaction{
+	tx := aero.Transaction{
 		Txid:      "testtxid",
 		Output:    "testoutput",
 		Input:     "testinput",
@@ -42,8 +45,8 @@ func main() {
 	}
 
 	// keyとして必要なハッシュ値を取得
-	blockHash := getHash(block)
-	txHash := getHash(tx)
+	blockHash := aero.GetHash(block)
+	txHash := aero.GetHash(tx)
 
 	// レコードの取得
 	blockRecv, err := client.GetBlock(blockHash)
@@ -63,5 +66,4 @@ func main() {
 	err = client.DeleteBlock(blockHash)
 	err = client.DeleteTransaction(txHash)
 }
-
 ```
