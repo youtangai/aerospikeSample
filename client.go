@@ -20,7 +20,8 @@ type IAeroSpikeClinet interface {
 	PutBlock(Block) error
 	PutTransaction(Transaction) error
 	GetBlock(string) (Block, error)
-	GetTransaction(string) (Transaction, error)
+	GetTransactionByInput(string) ([]Transaction, error)
+	GetTransactionByOutput(string) ([]Transaction, error)
 	DeleteBlock(string) error
 	DeleteTransaction(string) error
 	CreateIndex(CreateIndexOptions) error
@@ -111,26 +112,86 @@ func (a aeroSpikeClient) GetBlock(hash string) (Block, error) {
 	return block, nil
 }
 
-// GetTransactionは 引数であるhashをキーに Transactionを取得するメソッドです
-func (a aeroSpikeClient) GetTransaction(hash string) (Transaction, error) {
-	key, err := getTransactionKey(hash)
-	if err != nil {
-		return Transaction{}, err
-	}
+// GetTransactionByInputは 引数であるinputとレコードのInputが一致する Transactionを1つ以上取得するメソッドです
+func (a aeroSpikeClient) GetTransactionByInput(input string) ([]Transaction, error) {
+	// select * from namespace.tableを表す
+	stmt := aero.NewStatement(
+		GetAerospikeNamespace(),
+		GetAerospikeTxTable(),
+		"Txid",
+		"Output",
+		"Input",
+		"Amount",
+		"Timestamp",
+		"Sign",
+		"Pubkey",
+	)
+
+	// where Input = input を表す
+	stmt.Addfilter(aero.NewEqualFilter("Input", input))
 
 	// レコードの取得
-	record, err := a.client.Get(nil, key)
+	recordSet, err := a.client.Query(nil, stmt)
 	if err != nil {
-		return Transaction{}, err
+		return nil, err
 	}
 
-	// binmap to tx
-	tx, err := binMapToTransaction(record)
-	if err != nil {
-		return Transaction{}, err
+	var transactions []Transaction
+	for result := range recordSet.Results() {
+		if result.Err != nil {
+			return nil, result.Err
+		}
+
+		// binmap to tx
+		tx, err := binMapToTransaction(result.Record)
+		if err != nil {
+			return nil, err
+		}
+		transactions = append(transactions, tx)
 	}
 
-	return tx, nil
+	return transactions, nil
+}
+
+// GetTransactionByOutputは 引数であるOutputとレコードのOutputが一致する Transactionを1つ以上取得するメソッドです
+func (a aeroSpikeClient) GetTransactionByOutput(output string) ([]Transaction, error) {
+	// select * from namespace.tableを表す
+	stmt := aero.NewStatement(
+		GetAerospikeNamespace(),
+		GetAerospikeTxTable(),
+		"Txid",
+		"Output",
+		"Input",
+		"Amount",
+		"Timestamp",
+		"Sign",
+		"Pubkey",
+	)
+
+	// where Input = input を表す
+	stmt.Addfilter(aero.NewEqualFilter("Output", output))
+
+	// レコードの取得
+	recordSet, err := a.client.Query(nil, stmt)
+	if err != nil {
+		return nil, err
+	}
+
+	var transactions []Transaction
+	for result := range recordSet.Results() {
+		if result.Err != nil {
+			return nil, result.Err
+		}
+
+		// binmap to tx
+		tx, err := binMapToTransaction(result.Record)
+		if err != nil {
+			return nil, err
+		}
+		transactions = append(transactions, tx)
+	}
+
+	return transactions, nil
 }
 
 // DeleteBlock は hashをキーに blockを削除するメソッドです
