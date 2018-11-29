@@ -25,6 +25,7 @@ type IAeroSpikeClinet interface {
 	DeleteTransaction(string) error
 }
 
+// NewAeroSpikeClient は 新しいaerospikeクライアントを取得する関数です
 func NewAeroSpikeClient(host string, port int) (IAeroSpikeClinet, error) {
 	cli, err := aero.NewClient(host, port)
 	if err != nil {
