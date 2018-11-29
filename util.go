@@ -10,8 +10,8 @@ import (
 
 // blockテーブル用のkeyを取得する関数
 func getBlockKey(hash string) (*aero.Key, error) {
-	namespace := getAerospikeNamespace()
-	table := getAerospikeBlockTable()
+	namespace := GetAerospikeNamespace()
+	table := GetAerospikeBlockTable()
 	key, err := aero.NewKey(namespace, table, hash)
 	if err != nil {
 		return nil, err
@@ -21,8 +21,8 @@ func getBlockKey(hash string) (*aero.Key, error) {
 
 // transactionテーブル用のkeyを取得する関数
 func getTransactionKey(hash string) (*aero.Key, error) {
-	namespace := getAerospikeNamespace()
-	table := getAerospikeTxTable()
+	namespace := GetAerospikeNamespace()
+	table := GetAerospikeTxTable()
 	key, err := aero.NewKey(namespace, table, hash)
 	if err != nil {
 		return nil, err

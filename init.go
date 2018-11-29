@@ -27,14 +27,14 @@ func init() {
 	fmt.Printf("%s: namespace: %s, blocktable: %s, txtable: %s\n", tag, c.AerospikeNamespace, c.AerospikeBlockTable, c.AerospikeTxTable)
 }
 
-func getAerospikeNamespace() string {
+func GetAerospikeNamespace() string {
 	return c.AerospikeNamespace
 }
 
-func getAerospikeBlockTable() string {
+func GetAerospikeBlockTable() string {
 	return c.AerospikeBlockTable
 }
 
-func getAerospikeTxTable() string {
+func GetAerospikeTxTable() string {
 	return c.AerospikeTxTable
 }

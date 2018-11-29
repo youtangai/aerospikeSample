@@ -8,6 +8,13 @@ type aeroSpikeClient struct {
 	client *aero.Client
 }
 
+const (
+	// IndexTypeNumric は int型のbinにインデックスを貼るときに使います
+	IndexTypeNumric = aero.NUMERIC
+	// IndexTypeString は string型のbinにインデックスを貼るときに使います
+	IndexTypeString = aero.STRING
+)
+
 // IAeroSpikeClinet は AeroSpikeClientの振る舞いを定義
 type IAeroSpikeClinet interface {
 	PutBlock(Block) error
@@ -16,6 +23,16 @@ type IAeroSpikeClinet interface {
 	GetTransaction(string) (Transaction, error)
 	DeleteBlock(string) error
 	DeleteTransaction(string) error
+	CreateIndex(CreateIndexOptions) error
+}
+
+// CreateIndexOptions は インデックスを作成する際のオプション構造体です
+type CreateIndexOptions struct {
+	Namespace string
+	Set       string
+	Bin       string
+	IndexName string
+	IndexType aero.IndexType
 }
 
 // NewAeroSpikeClient は 新しいaerospikeクライアントを取得する関数です
@@ -130,6 +147,19 @@ func (a aeroSpikeClient) DeleteBlock(hash string) error {
 func (a aeroSpikeClient) DeleteTransaction(hash string) error {
 	key, err := getTransactionKey(hash)
 	_, err = a.client.Delete(nil, key)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// CreateIndex は CreateIndexOptionに基づいてインデックスを作成するメソッドです
+func (a aeroSpikeClient) CreateIndex(option CreateIndexOptions) error {
+	task, err := a.client.CreateIndex(nil, option.Namespace, option.Set, option.IndexName, option.Bin, option.IndexType)
+	if err != nil {
+		return err
+	}
+	err = <-task.OnComplete()
 	if err != nil {
 		return err
 	}
