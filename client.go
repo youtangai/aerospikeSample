@@ -4,14 +4,6 @@ import (
 	aero "github.com/aerospike/aerospike-client-go"
 )
 
-const (
-	AEROSPIKE_HOST        = "127.0.0.1"
-	AEROSPIKE_PORT        = 3000
-	AEROSPIKE_NAMESPACE   = "test"
-	AEROSPIKE_TX_TABLE    = "TxTable"
-	AEROSPIKE_BLOCL_TABLE = "BlockTable"
-)
-
 type aeroSpikeClient struct {
 	client *aero.Client
 }

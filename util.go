@@ -10,7 +10,9 @@ import (
 
 // blockテーブル用のkeyを取得する関数
 func getBlockKey(hash string) (*aero.Key, error) {
-	key, err := aero.NewKey(AEROSPIKE_NAMESPACE, AEROSPIKE_BLOCL_TABLE, hash)
+	namespace := getAerospikeNamespace()
+	table := getAerospikeBlockTable()
+	key, err := aero.NewKey(namespace, table, hash)
 	if err != nil {
 		return nil, err
 	}
@@ -19,7 +21,9 @@ func getBlockKey(hash string) (*aero.Key, error) {
 
 // transactionテーブル用のkeyを取得する関数
 func getTransactionKey(hash string) (*aero.Key, error) {
-	key, err := aero.NewKey(AEROSPIKE_NAMESPACE, AEROSPIKE_TX_TABLE, hash)
+	namespace := getAerospikeNamespace()
+	table := getAerospikeTxTable()
+	key, err := aero.NewKey(namespace, table, hash)
 	if err != nil {
 		return nil, err
 	}
