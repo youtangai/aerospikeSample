@@ -39,8 +39,30 @@ type Transaction struct {
 	Pubkey    string  `protobuf:"bytes,7,opt,name=pubkey,proto3" json:"pubkey,omitempty"`
 }
 
+type aeroSpikeClient struct {
+	client *aero.Client
+}
+
+type IAeroSpikeClinet interface {
+	InsertBlock(Block) (*aero.Key, error)
+	InsertTransaction(Transaction) (*aero.Key, error)
+	GetBlock(*aero.Key) (Block, error)
+	GetTransaction(*aero.Key) (Transaction, error)
+}
+
+func NewAeroSpikeClient(host string, port int) (IAeroSpikeClinet, error) {
+	cli, err := aero.NewClient(host, port)
+	if err != nil {
+		return nil, err
+	}
+	return aeroSpikeClient{
+		client: cli,
+	}, nil
+}
+
 func main() {
-	cli, err := aero.NewClient(AEROSPIKE_HOST, AEROSPIKE_PORT)
+	// クライアントをラップする
+	client, err := NewAeroSpikeClient(AEROSPIKE_HOST, AEROSPIKE_PORT)
 	if err != nil {
 		panic(err)
 	}
@@ -67,50 +89,23 @@ func main() {
 		Pubkey:    "test_pubkey",
 	}
 
-	// hash値の取得
-	hashKeyBlock := getHashForKey(block)
-	hashKeyTx := getHashForKey(tx)
-
-	// aerospike用のkey構造体を取得
-	keyBlock, err := aero.NewKey(AEROSPIKE_NAMESPACE, AEROSPIKE_BLOCL_TABLE, hashKeyBlock)
-	if err != nil {
-		panic(err)
-	}
-	keyTx, err := aero.NewKey(AEROSPIKE_NAMESPACE, AEROSPIKE_TX_TABLE, hashKeyTx)
+	keyBlock, err := client.InsertBlock(block)
 	if err != nil {
 		panic(err)
 	}
 
-	// dataをbinmapへ変換
-	dataBlock := blockToBinMap(block)
-	dataTx := transactionToBinMap(tx)
-
-	// データの挿入
-	err = cli.Put(nil, keyBlock, dataBlock)
-	if err != nil {
-		panic(err)
-	}
-	err = cli.Put(nil, keyTx, dataTx)
+	keyTx, err := client.InsertTransaction(tx)
 	if err != nil {
 		panic(err)
 	}
 
 	// レコードの取得
-	recordBlock, err := cli.Get(nil, keyBlock)
-	if err != nil {
-		panic(err)
-	}
-	recordTx, err := cli.Get(nil, keyTx)
+	blockRecv, err := client.GetBlock(keyBlock)
 	if err != nil {
 		panic(err)
 	}
 
-	// レコードをBlock型とTx型に変換
-	blockRecv, err := binMapToBlock(recordBlock)
-	if err != nil {
-		panic(err)
-	}
-	txRecv, err := binMapToTransaction(recordTx)
+	txRecv, err := client.GetTransaction(keyTx)
 	if err != nil {
 		panic(err)
 	}
@@ -118,6 +113,80 @@ func main() {
 	// データの確認
 	fmt.Printf("block:%v\n", blockRecv)
 	fmt.Printf("transaction:%v\n", txRecv)
+}
+
+func (a aeroSpikeClient) InsertBlock(block Block) (*aero.Key, error) {
+	// hash値の取得
+	hash := getHashForKey(block)
+
+	// aerospike用のkey構造体を取得
+	key, err := aero.NewKey(AEROSPIKE_NAMESPACE, AEROSPIKE_BLOCL_TABLE, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	// dataをbinmap(aerospikeに挿入可能な形)へ変換
+	data := blockToBinMap(block)
+
+	// データの格納
+	err = a.client.Put(nil, key, data)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
+}
+
+func (a aeroSpikeClient) InsertTransaction(tx Transaction) (*aero.Key, error) {
+	// hash値の取得
+	hash := getHashForKey(tx)
+
+	// aerospike用のkey構造体を取得
+	key, err := aero.NewKey(AEROSPIKE_NAMESPACE, AEROSPIKE_TX_TABLE, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	// dataをbinmap(aerospikeに挿入可能な形)へ変換
+	data := transactionToBinMap(tx)
+
+	// データの格納
+	err = a.client.Put(nil, key, data)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
+}
+
+func (a aeroSpikeClient) GetBlock(key *aero.Key) (Block, error) {
+	// レコードの取得
+	record, err := a.client.Get(nil, key)
+	if err != nil {
+		return Block{}, err
+	}
+
+	// binmap to block
+	block, err := binMapToBlock(record)
+	if err != nil {
+		return Block{}, err
+	}
+
+	return block, nil
+}
+
+func (a aeroSpikeClient) GetTransaction(key *aero.Key) (Transaction, error) {
+	// レコードの取得
+	record, err := a.client.Get(nil, key)
+	if err != nil {
+		return Transaction{}, err
+	}
+
+	// binmap to tx
+	tx, err := binMapToTransaction(record)
+	if err != nil {
+		return Transaction{}, err
+	}
+
+	return tx, nil
 }
 
 // keyとして利用するhash値を取得する関数
