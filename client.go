@@ -8,6 +8,7 @@ type aeroSpikeClient struct {
 	client *aero.Client
 }
 
+// IAeroSpikeClinet は AeroSpikeClientの振る舞いを定義
 type IAeroSpikeClinet interface {
 	PutBlock(Block) error
 	PutTransaction(Transaction) error
