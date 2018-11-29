@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	aero "github.com/aerospike/aerospike-client-go"
+	"github.com/youtangai/aerospike-sample/model"
 )
 
 const (
@@ -16,38 +17,15 @@ const (
 	AEROSPIKE_BLOCL_TABLE = "BlockTable"
 )
 
-type Block struct {
-	Id         string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Version    int32    `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
-	Prehash    string   `protobuf:"bytes,3,opt,name=prehash,proto3" json:"prehash,omitempty"`
-	Merkleroot string   `protobuf:"bytes,4,opt,name=merkleroot,proto3" json:"merkleroot,omitempty"`
-	Timestamp  string   `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Level      string   `protobuf:"bytes,6,opt,name=level,proto3" json:"level,omitempty"`
-	Nonce      uint32   `protobuf:"varint,7,opt,name=nonce,proto3" json:"nonce,omitempty"`
-	Size       int64    `protobuf:"varint,8,opt,name=size,proto3" json:"size,omitempty"`
-	Txcount    int64    `protobuf:"varint,9,opt,name=txcount,proto3" json:"txcount,omitempty"`
-	TxidList   []string `protobuf:"bytes,10,rep,name=txid_list,json=txidList,proto3" json:"txid_list,omitempty"`
-}
-
-type Transaction struct {
-	Txid      string  `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
-	Output    string  `protobuf:"bytes,2,opt,name=output,proto3" json:"output,omitempty"`
-	Input     string  `protobuf:"bytes,3,opt,name=input,proto3" json:"input,omitempty"`
-	Amount    float64 `protobuf:"fixed64,4,opt,name=amount,proto3" json:"amount,omitempty"`
-	Timestamp string  `protobuf:"bytes,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Sign      string  `protobuf:"bytes,6,opt,name=sign,proto3" json:"sign,omitempty"`
-	Pubkey    string  `protobuf:"bytes,7,opt,name=pubkey,proto3" json:"pubkey,omitempty"`
-}
-
 type aeroSpikeClient struct {
 	client *aero.Client
 }
 
 type IAeroSpikeClinet interface {
-	PutBlock(Block) error
-	PutTransaction(Transaction) error
-	GetBlock(string) (Block, error)
-	GetTransaction(string) (Transaction, error)
+	PutBlock(model.Block) error
+	PutTransaction(model.Transaction) error
+	GetBlock(string) (model.Block, error)
+	GetTransaction(string) (model.Transaction, error)
 	DeleteBlock(string) error
 	DeleteTransaction(string) error
 }
@@ -70,7 +48,7 @@ func main() {
 	}
 
 	// ダミーデータ作成
-	block := Block{
+	block := model.Block{
 		Id:         "testid",
 		Version:    12,
 		Prehash:    "testprehash",
@@ -82,7 +60,7 @@ func main() {
 		Txcount:    12345,
 		TxidList:   []string{"testid1", "testid2"},
 	}
-	tx := Transaction{
+	tx := model.Transaction{
 		Txid:      "testtxid",
 		Output:    "testoutput",
 		Input:     "testinput",
@@ -125,7 +103,7 @@ func main() {
 	err = client.DeleteTransaction(txHash)
 }
 
-func (a aeroSpikeClient) PutBlock(block Block) error {
+func (a aeroSpikeClient) PutBlock(block model.Block) error {
 	// hash値の取得
 	hash := getHash(block)
 
@@ -146,7 +124,7 @@ func (a aeroSpikeClient) PutBlock(block Block) error {
 	return nil
 }
 
-func (a aeroSpikeClient) PutTransaction(tx Transaction) error {
+func (a aeroSpikeClient) PutTransaction(tx model.Transaction) error {
 	// hash値の取得
 	hash := getHash(tx)
 
@@ -167,42 +145,42 @@ func (a aeroSpikeClient) PutTransaction(tx Transaction) error {
 	return nil
 }
 
-func (a aeroSpikeClient) GetBlock(hash string) (Block, error) {
+func (a aeroSpikeClient) GetBlock(hash string) (model.Block, error) {
 	key, err := getBlockKey(hash)
 	if err != nil {
-		return Block{}, err
+		return model.Block{}, err
 	}
 	// レコードの取得
 	record, err := a.client.Get(nil, key)
 	if err != nil {
-		return Block{}, err
+		return model.Block{}, err
 	}
 
 	// binmap to block
 	block, err := binMapToBlock(record)
 	if err != nil {
-		return Block{}, err
+		return model.Block{}, err
 	}
 
 	return block, nil
 }
 
-func (a aeroSpikeClient) GetTransaction(hash string) (Transaction, error) {
+func (a aeroSpikeClient) GetTransaction(hash string) (model.Transaction, error) {
 	key, err := getTransactionKey(hash)
 	if err != nil {
-		return Transaction{}, err
+		return model.Transaction{}, err
 	}
 
 	// レコードの取得
 	record, err := a.client.Get(nil, key)
 	if err != nil {
-		return Transaction{}, err
+		return model.Transaction{}, err
 	}
 
 	// binmap to tx
 	tx, err := binMapToTransaction(record)
 	if err != nil {
-		return Transaction{}, err
+		return model.Transaction{}, err
 	}
 
 	return tx, nil
@@ -258,7 +236,7 @@ func getHash(v interface{}) string {
 }
 
 // Block構造体 to binmap
-func blockToBinMap(b Block) aero.BinMap {
+func blockToBinMap(b model.Block) aero.BinMap {
 	return aero.BinMap{
 		"Id":         b.Id,
 		"Version":    b.Version,
@@ -274,7 +252,7 @@ func blockToBinMap(b Block) aero.BinMap {
 }
 
 // Transaction構造体 to binmap
-func transactionToBinMap(t Transaction) aero.BinMap {
+func transactionToBinMap(t model.Transaction) aero.BinMap {
 	return aero.BinMap{
 		"Txid":      t.Txid,
 		"Output":    t.Output,
@@ -287,70 +265,70 @@ func transactionToBinMap(t Transaction) aero.BinMap {
 }
 
 // binmap to Block構造体
-func binMapToBlock(record *aero.Record) (Block, error) {
-	var block Block
+func binMapToBlock(record *aero.Record) (model.Block, error) {
+	var block model.Block
 	binMap := record.Bins
 
 	// Idの型アサーション
 	id, ok := binMap["Id"].(string)
 	if !ok {
-		return Block{}, fmt.Errorf("failed Id assertion")
+		return model.Block{}, fmt.Errorf("failed Id assertion")
 	}
 	block.Id = id
 
 	// Versionの型アサーション
 	version, ok := binMap["Version"].(int)
 	if !ok {
-		return Block{}, fmt.Errorf("failed Version assertion")
+		return model.Block{}, fmt.Errorf("failed Version assertion")
 	}
 	block.Version = int32(version)
 
 	// Prehashの型アサーション
 	prehash, ok := binMap["Prehash"].(string)
 	if !ok {
-		return Block{}, fmt.Errorf("failed Prehash assertion")
+		return model.Block{}, fmt.Errorf("failed Prehash assertion")
 	}
 	block.Prehash = prehash
 
 	// Merklerootの型アサーション
 	merkleroot, ok := binMap["Merkleroot"].(string)
 	if !ok {
-		return Block{}, fmt.Errorf("failed Merkleroot assertion")
+		return model.Block{}, fmt.Errorf("failed Merkleroot assertion")
 	}
 	block.Merkleroot = merkleroot
 
 	// Timestampの型アサーション
 	timestamp, ok := binMap["Timestamp"].(string)
 	if !ok {
-		return Block{}, fmt.Errorf("failed Timestamp assertion")
+		return model.Block{}, fmt.Errorf("failed Timestamp assertion")
 	}
 	block.Timestamp = timestamp
 
 	// Levelの型アサーション
 	level, ok := binMap["Level"].(string)
 	if !ok {
-		return Block{}, fmt.Errorf("failed Level assertion")
+		return model.Block{}, fmt.Errorf("failed Level assertion")
 	}
 	block.Level = level
 
 	// Nonceの型アサーション
 	nonce, ok := binMap["Nonce"].(int)
 	if !ok {
-		return Block{}, fmt.Errorf("failed Nonce assertion")
+		return model.Block{}, fmt.Errorf("failed Nonce assertion")
 	}
 	block.Nonce = uint32(nonce)
 
 	// Sizeの型アサーション
 	size, ok := binMap["Size"].(int)
 	if !ok {
-		return Block{}, fmt.Errorf("failed Size assertion")
+		return model.Block{}, fmt.Errorf("failed Size assertion")
 	}
 	block.Size = int64(size)
 
 	// Txcountの型アサーション
 	txcount, ok := binMap["Txcount"].(int)
 	if !ok {
-		return Block{}, fmt.Errorf("failed Txcount assertion")
+		return model.Block{}, fmt.Errorf("failed Txcount assertion")
 	}
 	block.Txcount = int64(txcount)
 
@@ -359,14 +337,14 @@ func binMapToBlock(record *aero.Record) (Block, error) {
 	// まずはスライスの型アサーション
 	interfaceSlice, ok := binMap["TxidList"].([]interface{})
 	if !ok {
-		return Block{}, fmt.Errorf("failed TxidList assertion")
+		return model.Block{}, fmt.Errorf("failed TxidList assertion")
 	}
 
 	// スライスの中身を型アサーション
 	for _, value := range interfaceSlice {
 		txid, ok := value.(string)
 		if !ok {
-			return Block{}, fmt.Errorf("failed TxidList assertion")
+			return model.Block{}, fmt.Errorf("failed TxidList assertion")
 		}
 		txidList = append(txidList, txid)
 	}
@@ -376,56 +354,56 @@ func binMapToBlock(record *aero.Record) (Block, error) {
 }
 
 // binmap to Transaction構造体
-func binMapToTransaction(record *aero.Record) (Transaction, error) {
-	var tx Transaction
+func binMapToTransaction(record *aero.Record) (model.Transaction, error) {
+	var tx model.Transaction
 	binMap := record.Bins
 
 	// txidの型アサーション
 	txid, ok := binMap["Txid"].(string)
 	if !ok {
-		return Transaction{}, fmt.Errorf("failed Txid assertion")
+		return model.Transaction{}, fmt.Errorf("failed Txid assertion")
 	}
 	tx.Txid = txid
 
 	// outputの型アサーション
 	output, ok := binMap["Output"].(string)
 	if !ok {
-		return Transaction{}, fmt.Errorf("failed output assertion")
+		return model.Transaction{}, fmt.Errorf("failed output assertion")
 	}
 	tx.Output = output
 
 	// Inputの型アサーション
 	input, ok := binMap["Input"].(string)
 	if !ok {
-		return Transaction{}, fmt.Errorf("failed input assertion")
+		return model.Transaction{}, fmt.Errorf("failed input assertion")
 	}
 	tx.Input = input
 
 	// Amountの型アサーション
 	amount, ok := binMap["Amount"].(float64)
 	if !ok {
-		return Transaction{}, fmt.Errorf("failed Amount assertion")
+		return model.Transaction{}, fmt.Errorf("failed Amount assertion")
 	}
 	tx.Amount = amount
 
 	// Timestampの型アサーション
 	timestamp, ok := binMap["Timestamp"].(string)
 	if !ok {
-		return Transaction{}, fmt.Errorf("failed Timestamp assertion")
+		return model.Transaction{}, fmt.Errorf("failed Timestamp assertion")
 	}
 	tx.Timestamp = timestamp
 
 	// Signの型アサーション
 	sign, ok := binMap["Sign"].(string)
 	if !ok {
-		return Transaction{}, fmt.Errorf("failed sign assertion")
+		return model.Transaction{}, fmt.Errorf("failed sign assertion")
 	}
 	tx.Sign = sign
 
 	// Pubkeyの型アサーション
 	pubkey, ok := binMap["Pubkey"].(string)
 	if !ok {
-		return Transaction{}, fmt.Errorf("failed pubkey assertion")
+		return model.Transaction{}, fmt.Errorf("failed pubkey assertion")
 	}
 	tx.Pubkey = pubkey
 
