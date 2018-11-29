@@ -1,4 +1,4 @@
-package model
+package utari
 
 type Transaction struct {
 	Txid      string  `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
