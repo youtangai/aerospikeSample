@@ -6,41 +6,21 @@ import (
 	aero "github.com/youtangai/utari-aerospike-client"
 )
 
-func main() {
-	client, err := aero.NewAeroSpikeClient("127.0.0.1", 3000)
-	// indexの作成 初回時のみ実行する すでにindexが貼ってある状態でindexを貼ろうとするとエラーになる
-	//// オプションの定義
-	options := []aero.CreateIndexOptions{
-		aero.CreateIndexOptions{
-			Namespace: aero.GetAerospikeNamespace(),
-			Set:       aero.GetAerospikeTxTable(),
-			Bin:       "Input",
-			IndexName: "input_index",
-			IndexType: aero.IndexTypeString,
-		},
-		aero.CreateIndexOptions{
-			Namespace: aero.GetAerospikeNamespace(),
-			Set:       aero.GetAerospikeTxTable(),
-			Bin:       "Output",
-			IndexName: "output_index",
-			IndexType: aero.IndexTypeString,
-		},
-		aero.CreateIndexOptions{
-			Namespace: aero.GetAerospikeNamespace(),
-			Set:       aero.GetAerospikeTxTable(),
-			Bin:       "Amount",
-			IndexName: "amount_index",
-			IndexType: aero.IndexTypeNumric,
-		},
-	}
+var (
+	client aero.IAeroSpikeClinet
+	err    error
+)
 
-	//// indexの作成
-	for _, opt := range options {
-		err := client.CreateIndex(opt)
-		if err != nil {
-			panic(err)
-		}
+func init() {
+	client, err = aero.NewAeroSpikeClient("127.0.0.1", 3000)
+	if err != nil {
+		panic(err)
 	}
+}
+
+func main() {
+	// indexの作成 初回時のみ実行する すでにindexが貼ってある状態でindexを貼ろうとするとエラーになる
+	// createIndex()
 
 	// ダミーデータ作成
 	block := aero.Block{
@@ -77,23 +57,75 @@ func main() {
 
 	// keyとして必要なハッシュ値を取得
 	blockHash := aero.GetHash(block)
-	txHash := aero.GetHash(tx)
 
 	// レコードの取得
 	blockRecv, err := client.GetBlock(blockHash)
 	if err != nil {
 		panic(err)
 	}
-	txRecv, err := client.GetTransaction(txHash)
+	txs, err := client.GetTransactionByInput("testinput")
 	if err != nil {
 		panic(err)
 	}
+	fmt.Printf("transactions:%v\n", txs)
+
+	txs, err = client.GetTransactionByOutput("testoutput")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("transactions:%v\n", txs)
+
+	txs, err = client.GetTransactionByInput("hoge")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("transactions:%v\n", txs)
 
 	// データの確認
 	fmt.Printf("block:%v\n", blockRecv)
-	fmt.Printf("transaction:%v\n", txRecv)
 
 	// データの削除
-	// err = client.DeleteBlock(blockHash)
-	// err = client.DeleteTransaction(txHash)
+	err = client.DeleteBlock(blockHash)
+}
+
+func createIndex() {
+	//// オプションの定義
+	options := []aero.CreateIndexOptions{
+		aero.CreateIndexOptions{
+			Namespace: aero.GetAerospikeNamespace(),
+			Set:       aero.GetAerospikeTxTable(),
+			Bin:       "Input",
+			IndexName: "input_index",
+			IndexType: aero.IndexTypeString,
+		},
+		aero.CreateIndexOptions{
+			Namespace: aero.GetAerospikeNamespace(),
+			Set:       aero.GetAerospikeTxTable(),
+			Bin:       "Output",
+			IndexName: "output_index",
+			IndexType: aero.IndexTypeString,
+		},
+		aero.CreateIndexOptions{
+			Namespace: aero.GetAerospikeNamespace(),
+			Set:       aero.GetAerospikeTxTable(),
+			Bin:       "Amount",
+			IndexName: "amount_index",
+			IndexType: aero.IndexTypeNumric,
+		},
+		aero.CreateIndexOptions{
+			Namespace: aero.GetAerospikeNamespace(),
+			Set:       aero.GetAerospikeTxTable(),
+			Bin:       "Timestamp",
+			IndexName: "timestamp_index",
+			IndexType: aero.IndexTypeString,
+		},
+	}
+
+	//// indexの作成
+	for _, opt := range options {
+		err := client.CreateIndex(opt)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
