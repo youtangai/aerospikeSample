@@ -39,7 +39,7 @@ func NewAeroSpikeClient(host string, port int) (IAeroSpikeClinet, error) {
 // PutBlock は 引数のblockをaerospikeに格納するメソッドです
 func (a aeroSpikeClient) PutBlock(block Block) error {
 	// hash値の取得
-	hash := getHash(block)
+	hash := GetHash(block)
 
 	// aerospike用のkey構造体を取得
 	key, err := getBlockKey(hash)
@@ -61,7 +61,7 @@ func (a aeroSpikeClient) PutBlock(block Block) error {
 // PutTransaction は 引数Transactionをaerospikeに格納するメソッドです
 func (a aeroSpikeClient) PutTransaction(tx Transaction) error {
 	// hash値の取得
-	hash := getHash(tx)
+	hash := GetHash(tx)
 
 	// aerospike用のkey構造体を取得
 	key, err := getTransactionKey(hash)

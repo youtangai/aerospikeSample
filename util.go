@@ -26,8 +26,8 @@ func getTransactionKey(hash string) (*aero.Key, error) {
 	return key, nil
 }
 
-// keyとして利用するhash値を取得する関数
-func getHash(v interface{}) string {
+// GetHash はkeyとして利用するhash値を取得する関数
+func GetHash(v interface{}) string {
 	// 構造体を[]byteに変換
 	byteData, err := json.Marshal(v)
 	if err != nil {
