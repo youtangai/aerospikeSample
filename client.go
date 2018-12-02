@@ -25,6 +25,7 @@ type IAeroSpikeClinet interface {
 	DeleteBlock(string) error
 	DeleteTransaction(string) error
 	CreateIndex(CreateIndexOptions) error
+	Close()
 }
 
 // CreateIndexOptions は インデックスを作成する際のオプション構造体です
@@ -225,4 +226,8 @@ func (a aeroSpikeClient) CreateIndex(option CreateIndexOptions) error {
 		return err
 	}
 	return nil
+}
+
+func (a aeroSpikeClient) Close() {
+	a.client.Close()
 }
