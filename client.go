@@ -19,9 +19,11 @@ const (
 type IAeroSpikeClinet interface {
 	PutBlock(Block) error
 	PutTransaction(Transaction) error
+	PutBalance(string, float64) error
 	GetBlock(string) (Block, error)
 	GetTransactionByInput(string) ([]Transaction, error)
 	GetTransactionByOutput(string) ([]Transaction, error)
+	GetBalanceByAddress(string) (float64, error)
 	DeleteBlock(string) error
 	DeleteTransaction(string) error
 	CreateIndex(CreateIndexOptions) error
@@ -226,6 +228,32 @@ func (a aeroSpikeClient) CreateIndex(option CreateIndexOptions) error {
 		return err
 	}
 	return nil
+}
+
+func (a aeroSpikeClient) PutBalance(address string, balance float64) error {
+	key, err := getBalanceKey(address)
+	bal := Balance{Address: address, Balance: balance}
+	data := balanceToBinMap(bal)
+	err = a.client.Put(nil, key, data)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a aeroSpikeClient) GetBalanceByAddress(address string) (float64, error) {
+	key, err := getBalanceKey(address)
+	record, err := a.client.Get(nil, key)
+	if err != nil {
+		return -1.0, err
+	}
+
+	bal, err := binMapToBalance(record)
+	if err != nil {
+		return -1.0, err
+	}
+
+	return bal.Balance, nil
 }
 
 func (a aeroSpikeClient) Close() {

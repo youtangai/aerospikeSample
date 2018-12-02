@@ -30,6 +30,16 @@ func getTransactionKey(hash string) (*aero.Key, error) {
 	return key, nil
 }
 
+func getBalanceKey(address string) (*aero.Key, error) {
+	namespace := GetAerospikeNamespace()
+	table := "balance"
+	key, err := aero.NewKey(namespace, table, address)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
+}
+
 // GetHash はkeyとして利用するhash値を取得する関数
 func GetHash(v interface{}) string {
 	// 構造体を[]byteに変換
@@ -222,4 +232,33 @@ func binMapToTransaction(record *aero.Record) (Transaction, error) {
 	tx.Pubkey = pubkey
 
 	return tx, nil
+}
+
+func binMapToBalance(record *aero.Record) (Balance, error) {
+	var balance Balance
+	binMap := record.Bins
+
+	balanceFloat, ok := binMap["Balance"].(float64)
+	if !ok {
+		balanceInt, ok := binMap["Balance"].(int)
+		if !ok {
+			return Balance{}, fmt.Errorf("failed Balance assertion")
+		}
+		balanceFloat = float64(balanceInt)
+	}
+	balance.Balance = balanceFloat
+
+	address, ok := binMap["Address"].(string)
+	if !ok {
+		return Balance{}, fmt.Errorf("failed Address assertion")
+	}
+	balance.Address = address
+	return balance, nil
+}
+
+func balanceToBinMap(b Balance) aero.BinMap {
+	return aero.BinMap{
+		"Address": b.Address,
+		"Balance": b.Balance,
+	}
 }
