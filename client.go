@@ -1,6 +1,8 @@
 package utari
 
 import (
+	"fmt"
+
 	aero "github.com/aerospike/aerospike-client-go"
 )
 
@@ -99,6 +101,14 @@ func (a aeroSpikeClient) GetBlock(hash string) (Block, error) {
 	key, err := getBlockKey(hash)
 	if err != nil {
 		return Block{}, err
+	}
+
+	isExist, err := a.client.Exists(nil, key)
+	if err != nil {
+		return Block{}, err
+	}
+	if !isExist {
+		return Block{}, fmt.Errorf("the block does not exist with key:%v", key)
 	}
 	// レコードの取得
 	record, err := a.client.Get(nil, key)
@@ -246,6 +256,14 @@ func (a aeroSpikeClient) GetBalanceByAddress(address string) (float64, error) {
 	record, err := a.client.Get(nil, key)
 	if err != nil {
 		return -1.0, err
+	}
+
+	isExist, err := a.client.Exists(nil, key)
+	if err != nil {
+		return -1.0, err
+	}
+	if !isExist {
+		return -1.0, fmt.Errorf("the balance does not exist with key:%v", key)
 	}
 
 	bal, err := binMapToBalance(record)
